@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -14,13 +13,16 @@ export default function LoginPage() {
   const login = async () => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
 
     const data = await res.json();
 
     if (res.ok) {
-      localStorage.setItem("token", data.token);
+      // 🔥 सबसे important
+      localStorage.setItem("user", JSON.stringify(data.user));
+
       alert("Login Success");
       router.push("/dashboard");
     } else {
@@ -30,7 +32,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center h-screen text-white bg-black">
-      <div className="p-6 border rounded-xl w-96">
+      <div className="p-6 border w-96 rounded-xl">
         <h1 className="mb-4 text-2xl">Login</h1>
 
         <input
@@ -40,8 +42,8 @@ export default function LoginPage() {
         />
 
         <input
-          placeholder="Password"
           type="password"
+          placeholder="Password"
           className="w-full p-2 mb-2 bg-gray-900"
           onChange={(e) => setForm({ ...form, password: e.target.value })}
         />

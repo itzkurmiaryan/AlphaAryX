@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/components/CartContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Link from "next/link";
-import { X, ShoppingCart } from "lucide-react";
+import { X, ShoppingCart, LogIn, UserPlus } from "lucide-react";
+import { getUser } from "@/utils/auth";
 
 // ✅ SERVICES
 const allServices = [
@@ -45,10 +46,15 @@ export default function MarketingOrderPage() {
 
   const [selected, setSelected] = useState([]);
   const [toast, setToast] = useState(null);
+  const [user, setUser] = useState(null);
 
   // ✅ NEW: CUSTOM SERVICE STATE (ADDED ONLY)
   const [customName, setCustomName] = useState("");
   const [customPrice, setCustomPrice] = useState("");
+
+  useEffect(() => {
+    setUser(getUser());
+  }, []);
 
   const showToast = (message) => {
     setToast(message);
@@ -91,6 +97,33 @@ export default function MarketingOrderPage() {
 
     showToast("🚀 Checkout successful!");
   };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen text-white bg-black">
+        <Navbar />
+        <div className="px-6 py-24">
+          <div className="max-w-xl mx-auto rounded-3xl border border-white/10 bg-white/5 p-10 text-center">
+            <h1 className="text-4xl font-bold mb-4">🔒 Authentication Required</h1>
+            <p className="text-gray-300">
+              You need to be logged in to order services. Please login or register to continue.
+            </p>
+            <div className="flex flex-col gap-3 mt-8 sm:flex-row sm:justify-center">
+              <Link href="/login" className="inline-flex items-center justify-center w-full px-6 py-3 text-sm font-semibold text-white rounded-lg bg-gradient-to-r from-pink-500 to-fuchsia-500 sm:w-auto">
+                Login
+                <LogIn className="w-4 h-4 ml-2" />
+              </Link>
+              <Link href="/register" className="inline-flex items-center justify-center w-full px-6 py-3 text-sm font-semibold text-white rounded-lg bg-white/10 border border-white/20 sm:w-auto">
+                Register
+                <UserPlus className="w-4 h-4 ml-2" />
+              </Link>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   // ✅ NEW: ADD CUSTOM SERVICE FUNCTION
   const addCustomService = () => {

@@ -3,17 +3,42 @@ import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
 export async function POST(req) {
-  await connectDB();
+  try {
+    await connectDB();
 
-  const { name, email, password } = await req.json();
+    const { name, email, password } = await req.json();
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+    // ✅ check existing user FIRST
+    const existingUser = await User.findOne({ email });
 
-  const user = await User.create({
-    name,
-    email,
-    password: hashedPassword,
-  });
+    if (existingUser) {
+      return Response.json(
+        { message: "User already exists" },
+        { status: 400 }
+      );
+    }
 
-  return Response.json(user);
+    // ✅ hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ✅ create user
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+    });
+
+    return Response.json({
+      message: "Account created successfully",
+      user,
+    });
+
+  } catch (error) {
+    console.log("REGISTER ERROR:", error);
+
+    return Response.json(
+      { message: "Server error" },
+      { status: 500 }
+    );
+  }
 }

@@ -2,12 +2,32 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Hero() {
+  const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // ✅ Safe localStorage check (avoids hydration mismatch issues)
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    setIsLoggedIn(!!user);
+  }, []);
+
+  const handleStart = () => {
+    if (!isLoggedIn) {
+      alert("Please login first 🔐");
+      router.push("/login");
+    } else {
+      router.push("/services");
+    }
+  };
+
   return (
     <section className="relative flex flex-col items-center justify-center min-h-screen px-6 overflow-hidden text-center perspective-1000">
 
-      {/* 🌌 Background Glows */}
+      {/* 🌌 Animated Background Glows */}
       <motion.div
         animate={{ y: [0, -20, 0], x: [0, 15, -15, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -19,11 +39,11 @@ export default function Hero() {
         className="absolute w-[400px] h-[400px] bg-indigo-400 opacity-20 blur-[120px] rounded-full bottom-10 right-10 z-0"
       />
 
-      {/* 🔥 BIG BACKGROUND TEXT */}
+      {/* 🔥 Background Branding Text */}
       <section className="relative flex items-start justify-center w-full overflow-hidden">
         <motion.h1
           initial={{ rotateY: 30, opacity: 0 }}
-          animate={{ rotateY: 0, opacity: 0.12 }}
+          animate={{ rotateY: 0, opacity: 0.1 }}
           transition={{ duration: 1.5 }}
           className="font-black text-gray-400 pointer-events-none select-none"
           style={{
@@ -70,7 +90,7 @@ export default function Hero() {
         transition={{ delay: 0.5 }}
         className="relative z-10 max-w-xl mt-6 text-lg text-gray-500"
       >
-        Helping businesses (B2B) and individuals (B2C) with websites, 
+        Helping businesses (B2B) and individuals (B2C) with websites,
         printing, design, CSC services, and complete digital solutions.
       </motion.p>
 
@@ -81,18 +101,21 @@ export default function Hero() {
         transition={{ delay: 0.7 }}
         className="relative z-10 flex flex-wrap justify-center gap-4 mt-8"
       >
+        {/* Start Project */}
         <motion.button
+          onClick={handleStart}
           whileHover={{
             scale: 1.1,
             y: -3,
             boxShadow: "0 20px 40px rgba(99, 102, 241,0.4)",
           }}
+          whileTap={{ scale: 0.95 }}
           className="px-8 py-3 text-white transition rounded-full shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600"
         >
-          Start Project 🚀
+          {isLoggedIn ? "Start Project 🚀" : "Login to Start 🔐"}
         </motion.button>
 
-        {/* ✅ Explore Services (FIXED) */}
+        {/* Explore Services */}
         <Link href="/services">
           <motion.button
             whileHover={{
@@ -100,6 +123,7 @@ export default function Hero() {
               y: -2,
               boxShadow: "0 10px 30px rgba(156,163,175,0.3)",
             }}
+            whileTap={{ scale: 0.95 }}
             className="px-8 py-3 transition border border-gray-300 rounded-full hover:bg-gray-100"
           >
             Explore Services
@@ -107,7 +131,7 @@ export default function Hero() {
         </Link>
       </motion.div>
 
-      {/* 🔥 TRUST LINE */}
+      {/* 🔥 Trust Line */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

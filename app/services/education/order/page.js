@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/components/CartContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Link from "next/link";
-import { X, ShoppingCart } from "lucide-react";
+import { X, ShoppingCart, LogIn, UserPlus } from "lucide-react";
+import { getUser } from "@/utils/auth";
 
 // 📚 EDUCATION SERVICES
 const allServices = [
@@ -29,8 +30,13 @@ export default function EducationOrderPage() {
   const { addToCart } = useCart();
 
   const [selected, setSelected] = useState([]);
-  const [toast, setToast] = useState(null);
+  const [toast, setToast] = useState(null);  const [user, setUser] = useState(null);
 
+  // Check authentication on mount
+  useEffect(() => {
+    const currentUser = getUser();
+    setUser(currentUser);
+  }, []);
   // ✅ CUSTOM SERVICE STATES (ADDED ONLY)
   const [customName, setCustomName] = useState("");
   const [customPrice, setCustomPrice] = useState("");
@@ -98,8 +104,36 @@ export default function EducationOrderPage() {
     <div className="min-h-screen text-white bg-black">
       <Navbar />
 
-      {/* TOAST */}
-      <AnimatePresence>
+      {/* AUTHENTICATION CHECK */}
+      {!user ? (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+          <div className="max-w-md p-8 border rounded-2xl border-white/10 bg-white/5">
+            <h1 className="mb-4 text-3xl font-bold text-cyan-400">
+              🔒 Authentication Required
+            </h1>
+            <p className="mb-6 text-gray-400">
+              You need to be logged in to order services. Please login or register to continue.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Link href="/login">
+                <button className="flex items-center justify-center w-full gap-2 py-3 font-semibold text-white bg-cyan-500 rounded-xl hover:bg-cyan-600">
+                  <LogIn size={18} />
+                  Login
+                </button>
+              </Link>
+              <Link href="/register">
+                <button className="flex items-center justify-center w-full gap-2 py-3 font-semibold text-white border border-cyan-500 rounded-xl hover:bg-cyan-500/10">
+                  <UserPlus size={18} />
+                  Register
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* TOAST */}
+          <AnimatePresence>
         {toast && (
           <motion.div
             initial={{ opacity: 0, y: -50, scale: 0.9 }}
@@ -257,7 +291,9 @@ export default function EducationOrderPage() {
         </div>
       </div>
 
-      <Footer />
+          <Footer />
+        </>
+      )}
     </div>
   );
 }

@@ -2,20 +2,31 @@
 
 import { useCart } from "@/components/CartContext";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ShieldCheck, CreditCard, MessageCircle } from "lucide-react";
+import { getUser } from "@/utils/auth";
 
 export default function Checkout() {
   const { cart, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [user, setUser] = useState(undefined);
 
   const total = cart.reduce((a, b) => a + (b.price || b.total), 0);
 
   /* ================= PLACE ORDER (BACKEND CONNECTED) ================= */
+  useEffect(() => {
+    setUser(getUser());
+  }, []);
+
   const placeOrder = async () => {
+    if (!user) {
+      alert("Please login to place an order.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -25,10 +36,11 @@ export default function Checkout() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          userId: user.id,
           items: cart,
           total,
-          status: "PAY_AFTER_WORK",
-          createdAt: new Date().toISOString(),
+          status: "PENDING",
+          paymentStatus: "PENDING",
         }),
       });
 
@@ -147,11 +159,17 @@ ${cart
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={placeOrder}
-                disabled={loading}
-                className="w-full py-4 text-lg font-semibold rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600"
+                disabled={loading || !user}
+                className="w-full py-4 text-lg font-semibold rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 disabled:opacity-50"
               >
-                {loading ? "Placing Order..." : "Place Order 🚀"}
+                {loading ? "Placing Order..." : user ? "Place Order 🚀" : "Login to Place Order"}
               </motion.button>
+
+              {!user && (
+                <p className="text-sm text-yellow-300">
+                  Please login to place an order and track it from your dashboard.
+                </p>
+              )}
 
               {/* WHATSAPP */}
               <button
