@@ -15,6 +15,7 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const fileInputRef = useRef(null);
+  const receivedMessageIdsRef = useRef(new Set());
 
   // Determine the actual user IDs based on props
   const chatUserId = chatWithUser ? chatWithUser._id : userId;
@@ -66,6 +67,14 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
           transports: ["websocket", "polling"],
         });
 
+        // Remove old listeners to prevent duplicates (important for React Strict Mode)
+        socket.off("connect");
+        socket.off("disconnect");
+        socket.off("receiveMessage");
+        socket.off("userJoined");
+        socket.off("error");
+        socket.off("connect_error");
+
         socket.on("connect", () => {
           console.log("✓ Connected to chat server, socket ID:", socket.id);
           setIsConnected(true);
@@ -85,6 +94,20 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
 
         socket.on("receiveMessage", (message) => {
           console.log("📨 Message received:", message);
+          
+          // Use a unique key for each message
+          const messageKey = message._id ? String(message._id) : `${message.senderId}_${message.timestamp}_${message.message}`;
+          
+          // Check if we've already processed this message
+          if (receivedMessageIdsRef.current.has(messageKey)) {
+            console.log("✓ Duplicate message ignored, ID:", messageKey);
+            return;
+          }
+          
+          // Mark this message as received
+          receivedMessageIdsRef.current.add(messageKey);
+          
+          // Add to state
           setMessages(prev => [...prev, message]);
         });
 
@@ -133,10 +156,18 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
 
   const loadMessages = async () => {
     try {
+      // Reset received message IDs when loading new chat
+      receivedMessageIdsRef.current.clear();
+      
       const response = await fetch(`/api/chat?userId=${chatUserId}${isAdminMode ? "&admin=true" : ""}`);
       const data = await response.json();
       if (data.messages) {
         setMessages(data.messages);
+        // Pre-populate received message IDs with existing messages
+        data.messages.forEach(msg => {
+          const key = msg._id ? String(msg._id) : `${msg.senderId}_${msg.timestamp}_${msg.message}`;
+          receivedMessageIdsRef.current.add(key);
+        });
       }
     } catch (error) {
       console.error("Error loading messages:", error);
@@ -373,9 +404,9 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
             No messages yet. Start the conversation!
           </div>
         ) : (
-          messages.map((message) => (
+          messages.map((message, index) => (
             <div
-              key={message._id}
+              key={message._id ? `msg_${message._id}` : `temp_${index}_${message.timestamp}`}
               className={`flex ${message.senderId === actualCurrentUser._id ? "justify-end" : "justify-start"}`}
             >
               <div className="flex items-start gap-2">
