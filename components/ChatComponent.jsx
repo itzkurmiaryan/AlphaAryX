@@ -65,6 +65,11 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
         const socket = io("/", {
           path: "/api/socket/io",
           transports: ["websocket", "polling"],
+          reconnection: true,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000,
+          reconnectionAttempts: 5,
+          timeout: 10000,
         });
 
         // Remove old listeners to prevent duplicates (important for React Strict Mode)
@@ -121,11 +126,13 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
         
         socket.on("connect_error", (error) => {
           console.error("❌ Socket connection error:", error);
+          setIsConnected(false);
         });
 
         socketRef.current = socket;
       } catch (error) {
         console.error("Socket initialization error:", error);
+        setIsConnected(false);
       }
     };
 
