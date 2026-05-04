@@ -406,6 +406,11 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
 
       {/* Messages */}
       <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+        {!isConnected && (
+          <div className="p-3 text-sm text-yellow-400 border border-yellow-500/30 bg-yellow-500/10 rounded-lg">
+            ⚠️ Chat connection unavailable. This may be normal if using Vercel (serverless doesn't support real-time sockets). Messages can still be sent/received through polling.
+          </div>
+        )}
         {messages.length === 0 ? (
           <div className="py-8 text-center text-slate-400">
             No messages yet. Start the conversation!
