@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
+import bcrypt from "bcryptjs";
 
 export async function POST(req, res) {
   try {
@@ -12,11 +13,14 @@ export async function POST(req, res) {
       return Response.json({ message: "Admin already exists", user: existingAdmin });
     }
 
+    // Hash the password
+    const hashedPassword = await bcrypt.hash("admin123", 10);
+
     // Create admin user
     const adminUser = new User({
       name: "Admin",
       email: "admin@alphaaryx.com",
-      password: "admin123", // In production, hash this password
+      password: hashedPassword,
       role: "admin",
     });
 

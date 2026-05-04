@@ -1,5 +1,6 @@
 ﻿"use client";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import ChatComponent from "@/components/ChatComponent";
 
 const formatCurrency = (value) =>
@@ -13,6 +14,9 @@ const STATUS_OPTIONS = ["PENDING", "CONFIRMED", "SHIPPED", "COMPLETED", "CANCELL
 const PAYMENT_OPTIONS = ["PENDING", "PAID", "FAILED"];
 
 export default function AdminDashboard() {
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,27 +30,103 @@ export default function AdminDashboard() {
   const [chatSearch, setChatSearch] = useState("");
   const [adminId, setAdminId] = useState(null);
 
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    if (user && user.role === "admin") {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = async () => {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(loginForm),
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.user.role === "admin") {
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setIsAuthenticated(true);
+    } else {
+      alert("Invalid credentials or not an admin");
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen text-white bg-black">
+        <div className="p-6 border w-96 rounded-xl">
+          <h1 className="mb-4 text-2xl">Admin Login</h1>
+          <input
+            placeholder="Email"
+            className="w-full p-2 mb-2 bg-gray-900"
+            value={loginForm.email}
+            onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full p-2 mb-2 bg-gray-900"
+            value={loginForm.password}
+            onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+          />
+          <button
+            onClick={handleLogin}
+            className="w-full p-2 bg-blue-600 rounded"
+          >
+            Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const loadData = async () => {
     setLoading(true);
-    const [userRes, orderRes, chatRes, adminRes] = await Promise.all([
-      fetch("/api/admin/users"),
-      fetch("/api/admin/orders"),
-      fetch("/api/admin/chat"),
-      fetch("/api/admin/get-admin-id"),
-    ]);
+    try {
+      const [userRes, orderRes, chatRes, adminRes] = await Promise.all([
+        fetch("/api/admin/users"),
+        fetch("/api/admin/orders"),
+        fetch("/api/admin/chat"),
+        fetch("/api/admin/get-admin-id"),
+      ]);
 
-    const userData = await userRes.json();
-    const orderData = await orderRes.json();
-    const chatData = await chatRes.json();
-    const adminData = await adminRes.json();
+      // Check if user is authenticated (if any response is 401, logout)
+      if (userRes.status === 401 || orderRes.status === 401 || chatRes.status === 401 || adminRes.status === 401) {
+        localStorage.removeItem("user");
+        setIsAuthenticated(false);
+        return;
+      }
 
-    setUsers(userData.users || []);
-    setOrders(orderData || []);
-    setChatUsers(chatData.users || []);
-    if (adminData.adminId) {
-      setAdminId(adminData.adminId);
+      if (!userRes.ok || !orderRes.ok || !chatRes.ok || !adminRes.ok) {
+        console.error("Error fetching admin data:", {
+          users: userRes.status,
+          orders: orderRes.status,
+          chat: chatRes.status,
+          admin: adminRes.status,
+        });
+        setLoading(false);
+        return;
+      }
+
+      const userData = await userRes.json();
+      const orderData = await orderRes.json();
+      const chatData = await chatRes.json();
+      const adminData = await adminRes.json();
+
+      setUsers(userData.users || []);
+      setOrders(orderData || []);
+      setChatUsers(chatData.users || []);
+      if (adminData.adminId) {
+        setAdminId(adminData.adminId);
+      }
+    } catch (error) {
+      console.error("Error loading admin data:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
