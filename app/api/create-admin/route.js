@@ -6,17 +6,13 @@ export async function POST(req, res) {
   try {
     await connectDB();
 
-    // Check if admin already exists
-    const existingAdmin = await User.findOne({ email: "admin@alphaaryx.com" });
+    // Delete existing admin if any
+    await User.deleteOne({ email: "admin@alphaaryx.com" });
 
-    if (existingAdmin) {
-      return Response.json({ message: "Admin already exists", user: existingAdmin });
-    }
-
-    // Hash the password
+    // Hash the password with bcrypt
     const hashedPassword = await bcrypt.hash("admin123", 10);
 
-    // Create admin user
+    // Create new admin user
     const adminUser = new User({
       name: "Admin",
       email: "admin@alphaaryx.com",
@@ -26,7 +22,16 @@ export async function POST(req, res) {
 
     await adminUser.save();
 
-    return Response.json({ message: "Admin created successfully", user: adminUser });
+    // Return without password
+    return Response.json({ 
+      message: "Admin created successfully", 
+      user: {
+        id: adminUser._id,
+        name: adminUser.name,
+        email: adminUser.email,
+        role: adminUser.role
+      }
+    });
   } catch (error) {
     console.error("Error creating admin:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });

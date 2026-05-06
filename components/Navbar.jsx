@@ -43,6 +43,7 @@ export default function Navbar() {
               src="/portfolio/logo.png"
               alt="logo"
               fill
+              sizes="40px"
               className="object-cover rounded-full"
             />
           </div>

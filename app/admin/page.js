@@ -1,7 +1,8 @@
 ﻿"use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import ChatComponent from "@/components/ChatComponent";
+import ChatComponent from "@/components/FirebaseChatComponent";
+import Footer from "@/components/Footer";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("en-IN", {
@@ -29,13 +30,24 @@ export default function AdminDashboard() {
   const [selectedChatUser, setSelectedChatUser] = useState(null);
   const [chatSearch, setChatSearch] = useState("");
   const [adminId, setAdminId] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const user = JSON.parse(localStorage.getItem("user") || "null");
     if (user && user.role === "admin") {
       setIsAuthenticated(true);
     }
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setIsAuthenticated(false);
+    setUsers([]);
+    setOrders([]);
+    setChatUsers([]);
+    setAdminId(null);
+  };
 
   const handleLogin = async () => {
     const res = await fetch("/api/auth/login", {
@@ -54,35 +66,6 @@ export default function AdminDashboard() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center h-screen text-white bg-black">
-        <div className="p-6 border w-96 rounded-xl">
-          <h1 className="mb-4 text-2xl">Admin Login</h1>
-          <input
-            placeholder="Email"
-            className="w-full p-2 mb-2 bg-gray-900"
-            value={loginForm.email}
-            onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full p-2 mb-2 bg-gray-900"
-            value={loginForm.password}
-            onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-          />
-          <button
-            onClick={handleLogin}
-            className="w-full p-2 bg-blue-600 rounded"
-          >
-            Login
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const loadData = async () => {
     setLoading(true);
     try {
@@ -97,6 +80,7 @@ export default function AdminDashboard() {
       if (userRes.status === 401 || orderRes.status === 401 || chatRes.status === 401 || adminRes.status === 401) {
         localStorage.removeItem("user");
         setIsAuthenticated(false);
+        setLoading(false);
         return;
       }
 
@@ -130,10 +114,12 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    if (isAuthenticated) {
+      loadData();
+      const interval = setInterval(loadData, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated]);
 
   const deleteUser = async (id) => {
     if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
@@ -218,34 +204,87 @@ export default function AdminDashboard() {
   const totalOrders = orders.length;
   const averageOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
 
-  return (
-    <div className="min-h-screen p-6 text-white bg-slate-950">
-      <header className="mb-8">
-        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Seller dashboard</p>
-            <h1 className="mt-2 text-4xl font-bold">Admin Dashboard</h1>
-            <p className="mt-3 text-slate-400 max-w-2xl">Full order management for all users, with filters, order tracking, and status updates.</p>
-          </div>
+  // Show login form if not authenticated
+  if (!mounted || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen text-white bg-black">
+        <div className="p-6 border w-96 rounded-xl">
+          <h1 className="mb-4 text-2xl">Admin Login</h1>
+          <input
+            placeholder="Email"
+            className="w-full p-2 mb-2 bg-gray-900 text-white rounded"
+            value={loginForm.email}
+            onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full p-2 mb-2 bg-gray-900 text-white rounded"
+            value={loginForm.password}
+            onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+          />
+          <button
+            onClick={handleLogin}
+            className="w-full p-2 bg-blue-600 rounded hover:bg-blue-700"
+          >
+            Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="p-4 rounded-3xl bg-white/5 border border-white/10">
-              <p className="text-sm text-slate-400">Total Users</p>
-              <p className="mt-3 text-3xl font-semibold text-white">{users.length}</p>
+  return (
+    <div className="min-h-screen text-white bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Premium Header */}
+      <header className="relative overflow-hidden border-b border-white/10 backdrop-blur-xl bg-white/5">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10"></div>
+        <div className="relative z-10 p-6">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="flex items-center gap-4 mb-2">
+                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-xl font-bold text-white">A</span>
+                </div>
+                <div>
+                  <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Admin Dashboard</p>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent">
+                    AlphaAryX Control Center
+                  </h1>
+                </div>
+              </div>
+              <p className="text-slate-400 max-w-2xl">Complete business management system with real-time analytics, user management, and order tracking.</p>
             </div>
-            <div className="p-4 rounded-3xl bg-white/5 border border-white/10">
-              <p className="text-sm text-slate-400">Total Orders</p>
-              <p className="mt-3 text-3xl font-semibold text-white">{totalOrders}</p>
-            </div>
-            <div className="p-4 rounded-3xl bg-white/5 border border-white/10">
-              <p className="text-sm text-slate-400">Total Revenue</p>
-              <p className="mt-3 text-3xl font-semibold text-emerald-400">{formatCurrency(totalRevenue)}</p>
+
+            <div className="flex items-center gap-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-white/10 backdrop-blur-sm">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide">Total Users</p>
+                  <p className="mt-2 text-2xl font-bold text-white">{users.length}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-white/10 backdrop-blur-sm">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide">Total Orders</p>
+                  <p className="mt-2 text-2xl font-bold text-white">{totalOrders}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-white/10 backdrop-blur-sm">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide">Revenue</p>
+                  <p className="mt-2 text-2xl font-bold text-emerald-400">{formatCurrency(totalRevenue)}</p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-red-500/25"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-[2fr_1fr_1.5fr]">
+      <div className="relative p-6">
+        <div className="grid gap-8 xl:grid-cols-[2fr_1fr_1.5fr]">
         {/* Orders Section */}
         <div className="space-y-6">
           <div className="rounded-3xl bg-white/5 border border-white/10 p-6">
@@ -562,6 +601,10 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      </div>
+
+      <Footer />
     </div>
   );
 }

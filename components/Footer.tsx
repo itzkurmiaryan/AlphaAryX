@@ -39,6 +39,7 @@ export default function Footer() {
                   src="/portfolio/logo.png"
                   alt="logo"
                   fill
+                  sizes="48px"
                   className="object-cover border rounded-full shadow-xl border-white/20"
                 />
               </div>

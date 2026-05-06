@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { getUser } from "@/utils/auth";
 import ChatComponent from "@/components/ChatComponent";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 export default function Dashboard() {
   const [user, setUser] = useState(undefined);
@@ -83,70 +85,73 @@ export default function Dashboard() {
 
   // ✅ logged in
   return (
-    <div className="min-h-screen p-6 text-white bg-slate-950">
-      <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Order dashboard</p>
-          <h1 className="mt-2 text-4xl font-bold">Welcome back, {user.name}</h1>
-          <p className="max-w-2xl mt-2 text-slate-400">Track your orders, cancel before completion, and follow every service delivery like a marketplace buyer.</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <Navbar />
+
+      <div className="relative p-6">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Order dashboard</p>
+            <h1 className="mt-2 text-4xl font-bold bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent">Welcome back, {user.name}</h1>
+            <p className="max-w-2xl mt-2 text-slate-400">Track your orders, cancel before completion, and follow every service delivery like a marketplace buyer.</p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="p-5 border rounded-3xl bg-white/5 border-white/10 backdrop-blur-sm">
+              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Total orders</p>
+              <p className="mt-3 text-3xl font-semibold text-white">{totalOrders}</p>
+            </div>
+            <div className="p-5 border rounded-3xl bg-white/5 border-white/10 backdrop-blur-sm">
+              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Total spent</p>
+              <p className="mt-3 text-3xl font-semibold text-emerald-400">₹{totalSpent}</p>
+            </div>
+          </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="p-5 border rounded-3xl bg-white/5 border-white/10">
-            <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Total orders</p>
-            <p className="mt-3 text-3xl font-semibold text-white">{totalOrders}</p>
+        {feedback && (
+          <div className="p-4 mt-6 border rounded-3xl bg-emerald-500/10 border-emerald-500 text-emerald-200">
+            {feedback}
           </div>
-          <div className="p-5 border rounded-3xl bg-white/5 border-white/10">
-            <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Total spent</p>
-            <p className="mt-3 text-3xl font-semibold text-emerald-400">₹{totalSpent}</p>
-          </div>
-        </div>
-      </div>
+        )}
 
-      {feedback && (
-        <div className="p-4 mt-6 border rounded-3xl bg-emerald-500/10 border-emerald-500 text-emerald-200">
-          {feedback}
-        </div>
-      )}
+        <div className="mt-8 space-y-4">
+          {loading ? (
+            <div className="p-6 border rounded-3xl bg-white/5 border-white/10 text-slate-400 backdrop-blur-sm">Loading your orders...</div>
+          ) : orders.length === 0 ? (
+            <div className="p-6 border rounded-3xl bg-white/5 border-white/10 text-slate-400 backdrop-blur-sm">
+              No orders yet. Place your first service order to see it here.
+            </div>
+          ) : (
+            orders.map((o) => (
+              <div key={o._id} className="p-6 border rounded-3xl border-white/10 bg-white/5 backdrop-blur-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Order #{o._id.slice(-8)}</p>
+                    <p className="mt-2 text-2xl font-semibold text-white">₹{o.total}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <span className="px-4 py-2 text-sm font-semibold rounded-full bg-slate-900/80 text-slate-200">{o.status || "PENDING"}</span>
+                    <span className="px-4 py-2 text-sm font-semibold rounded-full bg-cyan-900/80 text-cyan-200">{o.paymentStatus || "PENDING"}</span>
+                  </div>
+                </div>
 
-      <div className="mt-8 space-y-4">
-        {loading ? (
-          <div className="p-6 border rounded-3xl bg-white/5 border-white/10 text-slate-400">Loading your orders...</div>
-        ) : orders.length === 0 ? (
-          <div className="p-6 border rounded-3xl bg-white/5 border-white/10 text-slate-400">
-            No orders yet. Place your first service order to see it here.
-          </div>
-        ) : (
-          orders.map((o) => (
-            <div key={o._id} className="p-6 border rounded-3xl border-white/10 bg-white/5">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Order #{o._id.slice(-8)}</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">₹{o.total}</p>
+                <div className="grid gap-4 mt-6 text-sm sm:grid-cols-3 text-slate-400">
+                  <div className="p-4 rounded-3xl bg-slate-900/80">
+                    <p className="font-medium text-slate-200">Service / Item</p>
+                    <p className="mt-2 text-white">{o.items?.map((item) => item.items ? item.items.map(sub => sub.name).join(", ") : (item.name || item.service)).join(", ") || "N/A"}</p>
+                  </div>
+                  <div className="p-4 rounded-3xl bg-slate-900/80">
+                    <p className="font-medium text-slate-200">Placed</p>
+                    <p className="mt-2 text-white">{new Date(o.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="p-4 rounded-3xl bg-slate-900/80">
+                    <p className="font-medium text-slate-200">Items</p>
+                    <p className="mt-2 text-white">{o.items?.length || 0}</p>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <span className="px-4 py-2 text-sm font-semibold rounded-full bg-slate-900/80 text-slate-200">{o.status || "PENDING"}</span>
-                  <span className="px-4 py-2 text-sm font-semibold rounded-full bg-cyan-900/80 text-cyan-200">{o.paymentStatus || "PENDING"}</span>
-                </div>
-              </div>
 
-              <div className="grid gap-4 mt-6 text-sm sm:grid-cols-3 text-slate-400">
-                <div className="p-4 rounded-3xl bg-slate-900/80">
-                  <p className="font-medium text-slate-200">Service / Item</p>
-                  <p className="mt-2 text-white">{o.items?.map((item) => item.items ? item.items.map(sub => sub.name).join(", ") : (item.name || item.service)).join(", ") || "N/A"}</p>
-                </div>
-                <div className="p-4 rounded-3xl bg-slate-900/80">
-                  <p className="font-medium text-slate-200">Placed</p>
-                  <p className="mt-2 text-white">{new Date(o.createdAt).toLocaleDateString()}</p>
-                </div>
-                <div className="p-4 rounded-3xl bg-slate-900/80">
-                  <p className="font-medium text-slate-200">Items</p>
-                  <p className="mt-2 text-white">{o.items?.length || 0}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 mt-6 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-sm text-slate-400">Your order is currently <span className="text-white">{o.status || "PENDING"}</span>.</div>
+                <div className="flex flex-col gap-3 mt-6 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-sm text-slate-400">Your order is currently <span className="text-white">{o.status || "PENDING"}</span>.</div>
                 <button
                   disabled={o.status === "COMPLETED" || o.status === "CANCELLED"}
                   onClick={() => cancelOrder(o._id)}
@@ -168,6 +173,10 @@ export default function Dashboard() {
         </div>
         <ChatComponent userId={user.id} />
       </div>
+
+      </div>
+
+      <Footer />
     </div>
   );
 }

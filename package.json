@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "firebase": "^12.12.1",
     "framer-motion": "^12.38.0",
     "io": "^1.5.8",
     "jsonwebtoken": "^9.0.3",

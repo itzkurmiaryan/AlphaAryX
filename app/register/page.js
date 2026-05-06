@@ -1,9 +1,15 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { motion } from "framer-motion";
+import { Eye, EyeOff, User, Mail, Phone, CreditCard, Lock, ArrowRight } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -14,43 +20,156 @@ export default function RegisterPage() {
   });
 
   const register = async () => {
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: {
-      "Content-Type": "application/json", // 🔥 ADD THIS
-    },
-      body: JSON.stringify(form),
-    });
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (res.ok) {
-      alert("Account created");
-      router.push("/login");
-    } else {
-      alert(data.message);
+      if (res.ok) {
+        alert("Account created successfully!");
+        router.push("/login");
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      alert("Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
+  const fields = [
+    { name: "name", placeholder: "Full Name", icon: User, type: "text" },
+    { name: "email", placeholder: "Email Address", icon: Mail, type: "email" },
+    { name: "phone", placeholder: "Phone Number", icon: Phone, type: "tel" },
+    { name: "aadhaar", placeholder: "Aadhaar Number", icon: CreditCard, type: "text" },
+    { name: "password", placeholder: "Password", icon: Lock, type: "password" },
+  ];
+
   return (
-    <div className="flex items-center justify-center h-screen text-white bg-black">
-      <div className="p-6 border w-96 rounded-xl">
-        <h1 className="mb-4 text-2xl">Register</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <Navbar />
 
-        {["name","email","phone","aadhaar","password"].map((f)=>(
-          <input
-            key={f}
-            placeholder={f}
-            type={f==="password"?"password":"text"}
-            className="w-full p-2 mb-2 bg-gray-900"
-            onChange={(e)=>setForm({...form,[f]:e.target.value})}
-          />
-        ))}
-
-        <button onClick={register} className="w-full p-2 bg-blue-500 rounded">
-          Create Account
-        </button>
+      {/* Premium Background Effects */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute w-[800px] h-[800px] bg-indigo-500/10 blur-[200px] rounded-full top-[-400px] left-[-400px] animate-pulse"></div>
+        <div className="absolute w-[600px] h-[600px] bg-purple-500/10 blur-[150px] rounded-full bottom-[-300px] right-[-300px] animate-pulse"></div>
+        <div className="absolute w-[400px] h-[400px] bg-pink-500/10 blur-[100px] rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse"></div>
       </div>
+
+      <div className="relative z-10 flex items-center justify-center min-h-screen px-6 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="w-full max-w-md"
+        >
+          {/* Premium Card */}
+          <div className="relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl">
+            {/* Card Glow */}
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-xl"></div>
+
+            <div className="relative z-10">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"
+                >
+                  <User className="w-10 h-10 text-white" />
+                </motion.div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent mb-2">
+                  Join AlphaAryX
+                </h1>
+                <p className="text-slate-400">Create your account and start your journey</p>
+              </div>
+
+              {/* Form */}
+              <div className="space-y-4">
+                {fields.map((field, index) => (
+                  <motion.div
+                    key={field.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
+                    className="relative"
+                  >
+                    <field.icon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    {field.type === "password" ? (
+                      <>
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder={field.placeholder}
+                          className="w-full pl-12 pr-12 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300"
+                          value={form[field.name]}
+                          onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </>
+                    ) : (
+                      <input
+                        type={field.type}
+                        placeholder={field.placeholder}
+                        className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300"
+                        value={form[field.name]}
+                        onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
+                      />
+                    )}
+                  </motion.div>
+                ))}
+
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={register}
+                  disabled={loading}
+                  className="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      Create Account
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </motion.button>
+              </div>
+
+              {/* Footer Links */}
+              <div className="mt-8 text-center">
+                <p className="text-slate-400">
+                  Already have an account?{" "}
+                  <button
+                    onClick={() => router.push("/login")}
+                    className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
+                  >
+                    Sign in here
+                  </button>
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      <Footer />
     </div>
   );
 }
