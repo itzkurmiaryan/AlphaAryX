@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { getUser } from "@/utils/auth";
-import ChatComponent from "@/components/ChatComponent";
+import FirebaseChatComponent from "@/components/FirebaseChatComponent";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -171,7 +171,13 @@ export default function Dashboard() {
           <h2 className="text-2xl font-bold text-white">Chat with Admin</h2>
           <p className="mt-2 text-slate-400">Get instant support and ask questions about your orders.</p>
         </div>
-        <ChatComponent userId={user.id} />
+        <FirebaseChatComponent
+          currentUser={{ _id: user.id, name: user.name, email: user.email }}
+          userId={user.id}
+          isAdmin={false}
+          chatWithUser={null}
+          isAdminView={false}
+        />
       </div>
 
       </div>
