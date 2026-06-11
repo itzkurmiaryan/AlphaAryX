@@ -3,8 +3,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/components/CartContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Link from "next/link";
 import { X, ShoppingCart, LogIn, UserPlus } from "lucide-react";
 import { getUser } from "@/utils/auth";
@@ -27,7 +25,7 @@ const allServices = [
 ];
 
 export default function EducationOrderPage() {
-  const { addToCart } = useCart();
+  const { addToCart, removeFromCartById } = useCart();
 
   const [selected, setSelected] = useState([]);
   const [toast, setToast] = useState(null);  const [user, setUser] = useState(null);
@@ -56,14 +54,17 @@ export default function EducationOrderPage() {
 
     if (exists) {
       setSelected(selected.filter((x) => x.id !== service.id));
+      removeFromCartById(service.id);
     } else {
       setSelected([...selected, service]);
+      addToCart({ id: service.id, name: service.name, price: service.price });
       showToast(`✔ ${service.name} added to cart`);
     }
   };
 
   const removeItem = (item) => {
     setSelected(selected.filter((x) => x.id !== item.id));
+    removeFromCartById(item.id);
   };
 
   // ✅ CUSTOM SERVICE ADD (ONLY ADDITION)
@@ -102,7 +103,6 @@ export default function EducationOrderPage() {
 
   return (
     <div className="min-h-screen text-white bg-black">
-      <Navbar />
 
       {/* AUTHENTICATION CHECK */}
       {!user ? (
@@ -291,7 +291,6 @@ export default function EducationOrderPage() {
         </div>
       </div>
 
-          <Footer />
         </>
       )}
     </div>

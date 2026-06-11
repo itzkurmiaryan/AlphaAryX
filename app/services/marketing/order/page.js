@@ -3,8 +3,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/components/CartContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Link from "next/link";
 import { X, ShoppingCart, LogIn, UserPlus } from "lucide-react";
 import { getUser } from "@/utils/auth";
@@ -42,7 +40,7 @@ const allServices = [
 ];
 
 export default function MarketingOrderPage() {
-  const { addToCart } = useCart();
+  const { addToCart, removeFromCartById } = useCart();
 
   const [selected, setSelected] = useState([]);
   const [toast, setToast] = useState(null);
@@ -71,14 +69,17 @@ export default function MarketingOrderPage() {
 
     if (exists) {
       setSelected(selected.filter((x) => x.id !== service.id));
+      removeFromCartById(service.id);
     } else {
       setSelected([...selected, service]);
+      addToCart({ id: service.id, name: service.name, price: service.price });
       showToast(`✔ ${service.name} added to cart`);
     }
   };
 
   const removeItem = (item) => {
     setSelected(selected.filter((x) => x.id !== item.id));
+    removeFromCartById(item.id);
   };
 
   const total = useMemo(() => {
@@ -101,7 +102,6 @@ export default function MarketingOrderPage() {
   if (!user) {
     return (
       <div className="min-h-screen text-white bg-black">
-        <Navbar />
         <div className="px-6 py-24">
           <div className="max-w-xl mx-auto rounded-3xl border border-white/10 bg-white/5 p-10 text-center">
             <h1 className="text-4xl font-bold mb-4">🔒 Authentication Required</h1>
@@ -120,7 +120,6 @@ export default function MarketingOrderPage() {
             </div>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -144,7 +143,6 @@ export default function MarketingOrderPage() {
 
   return (
     <div className="min-h-screen text-white bg-black">
-      <Navbar />
 
       {/* TOAST */}
       <AnimatePresence>
@@ -296,7 +294,6 @@ export default function MarketingOrderPage() {
         </div>
       </div>
 
-      <Footer />
     </div>
   );
 }

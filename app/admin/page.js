@@ -1,6 +1,8 @@
 ﻿"use client";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import ChatComponent from "@/components/ChatComponent";
+import { getUser } from "@/utils/auth";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("en-IN", {
@@ -25,6 +27,8 @@ export default function AdminDashboard() {
   const [selectedChatUser, setSelectedChatUser] = useState(null);
   const [chatSearch, setChatSearch] = useState("");
   const [adminId, setAdminId] = useState(null);
+  const [authorized, setAuthorized] = useState(false);
+  const router = useRouter();
 
   const loadData = async () => {
     setLoading(true);
@@ -50,10 +54,24 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
+    const currentUser = getUser();
+    if (!currentUser) {
+      router.replace("/login");
+      return;
+    }
+    if (currentUser.role !== "admin") {
+      router.replace("/dashboard");
+      return;
+    }
+    setAuthorized(true);
+  }, [router]);
+
+  useEffect(() => {
+    if (!authorized) return;
     loadData();
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [authorized]);
 
   const deleteUser = async (id) => {
     if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;

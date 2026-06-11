@@ -17,18 +17,23 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
   const fileInputRef = useRef(null);
   const receivedMessageIdsRef = useRef(new Set());
 
-  // Determine the actual user IDs based on props
-  const chatUserId = chatWithUser ? chatWithUser._id : userId;
   const isAdminMode = isAdmin || isAdminView;
-  const currentUserId = currentUser
-    ? currentUser._id
-    : isAdminMode
-    ? adminId || adminUserId
+  const resolvedCurrentUserId = currentUser
+    ? (currentUser._id || currentUser.id)
     : userId;
-  const actualCurrentUser = currentUser || {
-    _id: currentUserId,
-    name: isAdminMode ? "Admin" : "User",
-  };
+  const resolvedAdminId = adminId || adminUserId;
+  const chatUserId = chatWithUser
+    ? (chatWithUser._id || chatWithUser.id)
+    : isAdminMode
+    ? userId
+    : resolvedAdminId;
+  const currentUserId = resolvedCurrentUserId;
+  const actualCurrentUser = currentUser
+    ? { ...currentUser, _id: resolvedCurrentUserId }
+    : {
+        _id: currentUserId,
+        name: isAdminMode ? "Admin" : "User",
+      };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -94,25 +99,41 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
 
         socket.on("receiveMessage", (message) => {
           console.log("📨 Message received:", message);
-          
+
           // Use a unique key for each message
           const messageKey = message._id ? String(message._id) : `${message.senderId}_${message.timestamp}_${message.message}`;
-          
+
           // Check if we've already processed this message
           if (receivedMessageIdsRef.current.has(messageKey)) {
             console.log("✓ Duplicate message ignored, ID:", messageKey);
             return;
           }
-          
+
           // Mark this message as received
           receivedMessageIdsRef.current.add(messageKey);
-          
+
+          // Auto-mark incoming messages as read
+          if (String(message.receiverId) === String(currentUserId) && socketRef.current?.connected) {
+            socketRef.current.emit("markAsRead", {
+              messageId: message._id,
+              userId: currentUserId,
+            });
+          }
+
           // Add to state
-          setMessages(prev => [...prev, message]);
+          setMessages((prev) => [...prev, message]);
         });
 
         socket.on("userJoined", (data) => {
           console.log("✓ User joined conversation:", data.userId);
+        });
+
+        socket.on("messageRead", ({ messageId, readerId }) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg._id === messageId ? { ...msg, isRead: true } : msg
+            )
+          );
         });
         
         socket.on("error", (error) => {
@@ -152,14 +173,35 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
     if (messages.length > 0) {
       scrollToBottom();
     }
-  }, [chatUserId, currentUserId, isConnected, messages.length, isAdminMode, messages]);
+  }, [chatUserId, currentUserId, isConnected, messages.length, isAdminMode]);
+
+  useEffect(() => {
+    if (!isConnected || messages.length === 0 || !currentUserId) return;
+
+    const unreadIds = messages
+      .filter((message) =>
+        String(message.receiverId) === String(currentUserId) && !message.isRead
+      )
+      .map((message) => message._id)
+      .filter(Boolean);
+
+    if (unreadIds.length > 0 && socketRef.current?.connected) {
+      socketRef.current.emit("markAsRead", {
+        messageIds: unreadIds,
+        userId: currentUserId,
+      });
+    }
+  }, [messages, isConnected, currentUserId]);
 
   const loadMessages = async () => {
     try {
       // Reset received message IDs when loading new chat
       receivedMessageIdsRef.current.clear();
       
-      const response = await fetch(`/api/chat?userId=${chatUserId}${isAdminMode ? "&admin=true" : ""}`);
+      const endpoint = isAdminMode
+        ? `/api/chat?admin=true&userId=${chatUserId}&currentUserId=${currentUserId}`
+        : `/api/chat?currentUserId=${currentUserId}&otherUserId=${chatUserId}`;
+      const response = await fetch(endpoint);
       const data = await response.json();
       if (data.messages) {
         setMessages(data.messages);
@@ -183,7 +225,7 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
       const response = await fetch("/api/chat", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId, userId: currentUserId }),
+        body: JSON.stringify({ messageId, deletedById: currentUserId, senderType: isAdminMode ? "admin" : "user" }),
       });
 
       if (response.ok) {
@@ -204,7 +246,7 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
       const response = await fetch("/api/chat", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: chatUserId, deleteAll: true }),
+        body: JSON.stringify({ deletedById: currentUserId, otherUserId: chatUserId, deleteAll: true }),
       });
 
       if (response.ok) {
@@ -366,88 +408,122 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
   }
 
   return (
-    <div className="flex flex-col border h-96 bg-slate-900/50 rounded-3xl border-white/10">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10">
+    <div className="flex flex-col border min-h-[24rem] h-96 bg-gradient-to-b from-slate-900 to-slate-950 rounded-2xl border-emerald-500/30 shadow-lg">
+      {/* Header - WhatsApp Style */}
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between border-b border-emerald-500/20 bg-gradient-to-r from-emerald-900/30 to-transparent">
         <div className="flex items-center gap-3">
-          <MessageCircle className="w-5 h-5 text-blue-400" />
+          <div className="p-2 rounded-full bg-emerald-500/20">
+            <MessageCircle className="w-5 h-5 text-emerald-400" />
+          </div>
           <div>
-            <h3 className="font-semibold text-white">
+            <h3 className="font-semibold text-white text-sm">
               {isAdminView
-                ? `Chat with ${chatWithUser?.name || chatWithUser?.email || "User"}`
+                ? `${chatWithUser?.name || chatWithUser?.email || "User"}`
                 : isAdminMode
-                ? "Chat with User"
-                : "Chat with Admin"
+                ? "User Support"
+                : "Admin Support"
               }
             </h3>
-            <p className="text-xs text-slate-400">
-              {isConnected ? "🟢 Connected" : "🔴 Disconnected"}
+            <p className="text-xs text-emerald-400 font-medium">
+              {isConnected ? "● Online" : "● Offline"}
             </p>
           </div>
         </div>
-        {isAdminMode && messages.length > 0 && (
+        {messages.length > 0 && (
           <button
             onClick={deleteEntireChat}
-            className="flex items-center gap-2 px-3 py-1 text-xs text-white transition-colors bg-red-600 rounded-full hover:bg-red-700"
-            title="Delete entire chat"
+            className="flex items-center gap-2 px-3 py-2 text-xs text-white transition-all bg-red-600 rounded-full hover:bg-red-700 hover:shadow-lg"
+            title="Clear chat history"
           >
             <Trash2 className="w-3 h-3" />
-            Delete Chat
+            Clear
           </button>
         )}
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+      {/* Messages - WhatsApp Style */}
+      <div className="flex-1 min-h-0 p-3 space-y-1 overflow-y-auto bg-opacity-50">
         {messages.length === 0 ? (
-          <div className="py-8 text-center text-slate-400">
-            No messages yet. Start the conversation!
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <MessageCircle className="w-12 h-12 mx-auto text-emerald-500/30 mb-2" />
+              <p className="text-slate-400 text-sm">No messages yet. Start the conversation!</p>
+            </div>
           </div>
         ) : (
-          messages.map((message, index) => (
-            <div
-              key={message._id ? `msg_${message._id}` : `temp_${index}_${message.timestamp}`}
-              className={`flex ${message.senderId === actualCurrentUser._id ? "justify-end" : "justify-start"}`}
-            >
-              <div className="flex items-start gap-2">
-                <div
-                  className={`max-w-xs px-4 py-2 rounded-2xl relative group ${
-                    message.senderId === actualCurrentUser._id
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-700 text-slate-200"
-                  }`}
-                >
-                  {message.image && (
-                    <div className="mb-2">
-                      <img
-                        src={message.image}
-                        alt={message.imageName || "Shared image"}
-                        className="h-auto max-w-full transition-opacity rounded-lg cursor-pointer hover:opacity-90"
-                        onClick={() => window.open(message.image, '_blank')}
-                      />
-                      {message.imageName && (
-                        <p className="mt-1 text-xs truncate opacity-70">{message.imageName}</p>
-                      )}
+          <div className="space-y-2">
+            {messages.map((message, index) => {
+              const isOwnMessage = String(message.senderId) === String(actualCurrentUser._id);
+              const showTimestamp = index === 0 || 
+                new Date(messages[index - 1]?.timestamp).toDateString() !== 
+                new Date(message.timestamp).toDateString();
+              
+              return (
+                <div key={message._id ? `msg_${message._id}` : `temp_${index}_${message.timestamp}`}>
+                  {showTimestamp && (
+                    <div className="flex justify-center my-2">
+                      <span className="text-[10px] text-slate-500 px-3 py-1 rounded-full bg-slate-800/50">
+                        {new Date(message.timestamp).toLocaleDateString()}
+                      </span>
                     </div>
                   )}
-                  {message.message && <p className="text-sm">{message.message}</p>}
-                  <p className="mt-1 text-xs opacity-70">
-                    {formatTime(message.timestamp)}
-                  </p>
-                  {/* Delete button - only show for own messages or admin */}
-                  {(message.senderId === actualCurrentUser._id || isAdminMode) && (
-                    <button
-                      onClick={() => deleteMessage(message._id)}
-                      className="absolute p-1 transition-opacity bg-red-500 rounded-full opacity-0 -top-2 -right-2 group-hover:opacity-100 hover:bg-red-600"
-                      title="Delete message"
-                    >
-                      <Trash2 className="w-3 h-3 text-white" />
-                    </button>
-                  )}
+                  <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} mb-1 group`}>
+                    <div className="flex items-end gap-1">
+                      <div
+                        className={`max-w-xs px-3 py-2 rounded-2xl relative transition-all ${
+                          isOwnMessage
+                            ? "bg-emerald-600 text-white rounded-br-none shadow-md hover:bg-emerald-700"
+                            : "bg-slate-700 text-slate-100 rounded-bl-none shadow-md hover:bg-slate-600"
+                        }`}
+                      >
+                        {message.image && (
+                          <div className="mb-2 max-w-full">
+                            <img
+                              src={message.image}
+                              alt={message.imageName || "Shared image"}
+                              className="h-auto max-w-xs transition-opacity rounded-lg cursor-pointer hover:opacity-90"
+                              onClick={() => window.open(message.image, '_blank')}
+                            />
+                            {message.imageName && (
+                              <p className="mt-1 text-xs truncate opacity-70">{message.imageName}</p>
+                            )}
+                          </div>
+                        )}
+                        {message.message && (
+                          <p className="text-sm leading-relaxed break-words">{message.message}</p>
+                        )}
+                        <div className="mt-1 flex items-center justify-end gap-2 text-[11px] opacity-70">
+                          <span className="whitespace-nowrap">{formatTime(message.timestamp)}</span>
+                          {isOwnMessage && (
+                            <span className="flex gap-px text-emerald-200">
+                              {message.isRead ? (
+                                <>
+                                  <span>✓</span>
+                                  <span>✓</span>
+                                </>
+                              ) : (
+                                <span>✓</span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Delete button - hover to show */}
+                      {(isOwnMessage || isAdminMode) && (
+                        <button
+                          onClick={() => deleteMessage(message._id)}
+                          className="p-1.5 transition-all opacity-0 group-hover:opacity-100 bg-red-500 hover:bg-red-600 rounded-full shadow-lg"
+                          title="Delete message"
+                        >
+                          <Trash2 className="w-3 h-3 text-white" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))
+              );
+            })}
+          </div>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -471,23 +547,15 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
         </div>
       )}
 
-      {/* Input */}
-      <form onSubmit={sendMessage} className="p-4 border-t border-white/10">
+      {/* Input - WhatsApp Style */}
+      <form onSubmit={sendMessage} className="p-3 border-t border-emerald-500/20 bg-gradient-to-t from-slate-950 to-transparent">
         {!isConnected && (
-          <div className="px-3 py-2 mb-2 text-xs text-red-400 rounded-lg bg-red-500/10">
-            ⚠️ Connecting to chat server... Please wait
+          <div className="px-3 py-2 mb-2 text-xs text-amber-400 rounded-lg bg-amber-500/10 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            Connecting to chat server...
           </div>
         )}
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={isConnected ? "Type your message..." : "Connecting to chat..."}
-            className="flex-1 px-4 py-2 text-white border rounded-full bg-slate-800/50 border-white/10 placeholder-slate-400 focus:outline-none focus:border-blue-500 disabled:opacity-60"
-            disabled={!isConnected || isUploading}
-          />
-
+        <div className="flex items-end gap-2">
           {/* Image Upload Button */}
           <input
             ref={fileInputRef}
@@ -501,16 +569,26 @@ const ChatComponent = ({ userId, isAdmin = false, adminId = null, currentUser, c
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={!isConnected || isUploading}
-            className="p-2 transition-colors rounded-full bg-slate-600 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 transition-all rounded-full bg-slate-700 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
             title={isConnected ? "Attach image" : "Wait for connection"}
           >
             <Image className="w-4 h-4 text-white" />
           </button>
 
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder={isConnected ? "Aa" : "Connecting..."}
+            className="flex-1 px-4 py-2 text-white border rounded-full bg-slate-800 border-emerald-500/30 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 disabled:opacity-60 transition-all"
+            disabled={!isConnected || isUploading}
+            onKeyPress={(e) => e.key === 'Enter' && sendMessage(e)}
+          />
+
           <button
             type="submit"
             disabled={(!newMessage.trim() && !selectedImage) || !isConnected || isUploading}
-            className="p-2 transition-colors bg-blue-600 rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 transition-all bg-emerald-600 rounded-full hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
             title={!isConnected ? "Waiting for connection..." : "Send message"}
           >
             {isUploading ? (

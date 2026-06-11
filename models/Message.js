@@ -31,6 +31,10 @@ const MessageSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  deletedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  }],
   senderType: {
     type: String,
     enum: ["user", "admin"],

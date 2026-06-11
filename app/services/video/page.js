@@ -10,8 +10,6 @@ import {
   Play
 } from "lucide-react";
 
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Link from "next/link";
 
 // 🔥 Categories with pricing
@@ -45,7 +43,6 @@ export default function VideoEditingPage() {
   return (
     <div className="relative min-h-screen overflow-hidden text-white bg-black">
       
-      <Navbar />
 
       {/* 🔥 Animated Background */}
       <motion.div
@@ -192,7 +189,6 @@ export default function VideoEditingPage() {
         💬
       </a>
 
-      <Footer />
     </div>
   );
 }

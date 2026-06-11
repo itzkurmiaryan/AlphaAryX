@@ -4,8 +4,6 @@ import Link from "next/link";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import { Video } from "lucide-react";
 import { useRef } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 
 const services = [
   { title: "Graphics", icon: "🎨", slug: "graphics", desc: "Design & Branding" },
@@ -22,7 +20,6 @@ export default function ServicesPage() {
   return (
     <div className="min-h-screen text-gray-900 bg-white">
 
-      <Navbar />
 
       <div className="max-w-6xl px-4 py-24 mx-auto">
 
@@ -61,7 +58,6 @@ export default function ServicesPage() {
 
       </div>
 
-      <Footer />
     </div>
   );
 }

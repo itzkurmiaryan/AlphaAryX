@@ -2,14 +2,10 @@
 
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin } from "lucide-react";
-import Navbar from "./Navbar";
-import Footer from "./Footer";
-
 
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-[#03040a] text-white relative overflow-hidden">
-      <Navbar />
 
       {/* 🌌 SOFT BACKGROUND GLOW */}
       <div className="absolute w-[400px] h-[400px] bg-purple-600/20 blur-[120px] top-[-100px] left-[-100px]" />
@@ -135,7 +131,6 @@ export default function ContactPage() {
         </div>
 
       </div>
-      <Footer />
 
     </div>
   );

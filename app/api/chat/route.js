@@ -1,58 +1,53 @@
 import { connectDB } from "@/lib/db";
 import Message from "@/models/Message";
 import User from "@/models/User";
-import { getUser } from "@/utils/auth";
+import { ObjectId } from "mongodb";
 
 export async function GET(req) {
   try {
     await connectDB();
 
     const url = new URL(req.url);
-    const userId = url.searchParams.get("userId");
+    const currentUserId = url.searchParams.get("currentUserId");
+    const otherUserId = url.searchParams.get("otherUserId");
     const adminView = url.searchParams.get("admin") === "true";
+    const userId = url.searchParams.get("userId");
 
-    if (adminView) {
-      // Admin viewing all messages with a specific user
-      if (!userId) {
-        return Response.json({ error: "User ID required for admin view" }, { status: 400 });
-      }
+    const baseQuery = adminView
+      ? {
+          $or: [
+            { senderId: userId },
+            { receiverId: userId }
+          ]
+        }
+      : {
+          $or: [
+            { senderId: currentUserId, receiverId: otherUserId },
+            { senderId: otherUserId, receiverId: currentUserId }
+          ]
+        };
 
-      const messages = await Message.find({
-        $or: [
-          { senderId: userId },
-          { receiverId: userId }
-        ]
-      })
-      .populate("senderId", "name email")
-      .populate("receiverId", "name email")
-      .sort({ timestamp: 1 });
-
-      return Response.json({ messages });
-    } else {
-      // User viewing their messages with admin
-      const user = getUser();
-      if (!user) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
-      }
-
-      // Find admin user (assuming admin has a specific role or email)
-      const admin = await User.findOne({ email: "admin@alphaaryx.com" });
-      if (!admin) {
-        return Response.json({ messages: [] });
-      }
-
-      const messages = await Message.find({
-        $or: [
-          { senderId: user.id, receiverId: admin._id },
-          { senderId: admin._id, receiverId: user.id }
-        ]
-      })
-      .populate("senderId", "name email")
-      .populate("receiverId", "name email")
-      .sort({ timestamp: 1 });
-
-      return Response.json({ messages });
+    if (adminView && !userId) {
+      return Response.json({ error: "User ID required for admin view" }, { status: 400 });
     }
+
+    if (!adminView && (!currentUserId || !otherUserId)) {
+      return Response.json({ error: "Current user and other user IDs are required" }, { status: 400 });
+    }
+
+    const query = { ...baseQuery };
+    if (currentUserId) {
+      // Convert to ObjectId to ensure proper comparison
+      try {
+        query.deletedBy = { $nin: [new ObjectId(currentUserId)] };
+      } catch (e) {
+        query.deletedBy = { $nin: [currentUserId] };
+      }
+    }
+
+    const messages = await Message.find(query).sort({ timestamp: 1 });
+
+    return Response.json({ messages });
   } catch (error) {
     console.error("Error fetching messages:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
@@ -63,22 +58,17 @@ export async function POST(req) {
   try {
     await connectDB();
 
-    const user = getUser();
-    if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { senderId, message, receiverId, senderType } = await req.json();
 
-    const { message, receiverId } = await req.json();
-
-    if (!message || !receiverId) {
-      return Response.json({ error: "Message and receiver ID required" }, { status: 400 });
+    if (!senderId || !message || !receiverId) {
+      return Response.json({ error: "Sender, message, and receiver IDs are required" }, { status: 400 });
     }
 
     const newMessage = new Message({
-      senderId: user.id,
+      senderId,
       receiverId,
       message,
-      senderType: "user",
+      senderType: senderType || "user",
     });
 
     await newMessage.save();
@@ -98,55 +88,61 @@ export async function DELETE(req) {
   try {
     await connectDB();
 
-    const { messageId, userId, deleteAll } = await req.json();
-
-    // Check if user is authenticated
-    const user = getUser();
-    if (!user && !deleteAll) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { messageId, deletedById, otherUserId, deleteAll, senderType } = await req.json();
 
     if (deleteAll) {
-      // Delete entire chat - only admin can do this
-      if (!userId) {
-        return Response.json({ error: "User ID required for deleting entire chat" }, { status: 400 });
+      if (!deletedById || !otherUserId) {
+        return Response.json({ error: "deletedById and otherUserId are required" }, { status: 400 });
       }
 
-      // Find admin
-      const admin = await User.findOne({ email: "admin@alphaaryx.com" });
-      if (!admin) {
-        return Response.json({ error: "Admin not found" }, { status: 404 });
+      // Convert to ObjectId for proper storage
+      let deletedByObjectId = deletedById;
+      try {
+        deletedByObjectId = new ObjectId(deletedById);
+      } catch (e) {
+        // If conversion fails, use as-is
       }
 
-      // Delete all messages between admin and the specified user
-      await Message.deleteMany({
-        $or: [
-          { senderId: userId, receiverId: admin._id },
-          { senderId: admin._id, receiverId: userId }
-        ]
-      });
+      await Message.updateMany(
+        {
+          $or: [
+            { senderId: deletedById, receiverId: otherUserId },
+            { senderId: otherUserId, receiverId: deletedById }
+          ]
+        },
+        { $addToSet: { deletedBy: deletedByObjectId } }
+      );
 
       return Response.json({ message: "Chat deleted successfully" });
-    } else {
-      // Delete single message
-      if (!messageId) {
-        return Response.json({ error: "Message ID required" }, { status: 400 });
-      }
-
-      // Find the message
-      const message = await Message.findById(messageId);
-      if (!message) {
-        return Response.json({ error: "Message not found" }, { status: 404 });
-      }
-
-      // Check if user can delete this message (only sender can delete their own messages)
-      if (message.senderId.toString() !== user.id) {
-        return Response.json({ error: "You can only delete your own messages" }, { status: 403 });
-      }
-
-      await Message.findByIdAndDelete(messageId);
-      return Response.json({ message: "Message deleted successfully" });
     }
+
+    if (!messageId || !deletedById) {
+      return Response.json({ error: "Message ID and user ID are required" }, { status: 400 });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return Response.json({ error: "Message not found" }, { status: 404 });
+    }
+
+    const isAdmin = senderType === "admin";
+
+    // Allow deletion if user is the sender or if user is admin
+    if (!isAdmin && String(message.senderId) !== String(deletedById)) {
+      return Response.json({ error: "You can only delete your own messages" }, { status: 403 });
+    }
+
+    // Convert to ObjectId for proper storage
+    let deletedByObjectId = deletedById;
+    try {
+      deletedByObjectId = new ObjectId(deletedById);
+    } catch (e) {
+      // If conversion fails, use as-is
+    }
+
+    // Mark message as deleted by this user instead of permanently deleting
+    await Message.findByIdAndUpdate(messageId, { $addToSet: { deletedBy: deletedByObjectId } });
+    return Response.json({ message: "Message deleted successfully" });
   } catch (error) {
     console.error("Error deleting:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });

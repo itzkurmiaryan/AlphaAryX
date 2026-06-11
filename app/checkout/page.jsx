@@ -2,9 +2,8 @@
 
 import { useCart } from "@/components/CartContext";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { ShieldCheck, CreditCard, MessageCircle } from "lucide-react";
 import { getUser } from "@/utils/auth";
 
@@ -14,7 +13,7 @@ export default function Checkout() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [user, setUser] = useState(undefined);
 
-  const total = cart.reduce((a, b) => a + (b.price || b.total), 0);
+  const total = cart.reduce((a, b) => a + (b.price || b.total || 0), 0);
 
   /* ================= PLACE ORDER (BACKEND CONNECTED) ================= */
   useEffect(() => {
@@ -82,7 +81,6 @@ ${cart
   return (
     <div className="min-h-screen text-white bg-[#05080f]">
 
-      <Navbar />
 
       {/* GLOW EFFECTS */}
       <div className="fixed top-10 left-10 w-[300px] h-[300px] bg-cyan-500/20 blur-[120px] rounded-full" />
@@ -100,105 +98,104 @@ ${cart
         </motion.h1>
 
         <div className="max-w-4xl mx-auto">
-
-          {/* ORDER BOX */}
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="p-8 border shadow-2xl bg-white/5 rounded-3xl border-white/10 backdrop-blur-xl"
+            className="p-6 md:p-8 border shadow-2xl bg-white/5 rounded-3xl border-white/10 backdrop-blur-xl"
           >
-
-            {/* ITEMS */}
             <h2 className="mb-6 text-2xl font-semibold">
               Order Summary 🧾
             </h2>
 
-            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-
-              {cart.map((item, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between p-4 border rounded-xl bg-white/5 border-white/10"
-                >
-                  <p className="font-semibold">
-                    {item.name || item.service}
-                  </p>
-
-                  <p className="font-bold text-cyan-400">
-                    ₹{item.price || item.total}
-                  </p>
-                </div>
-              ))}
-
-            </div>
-
-            {/* TOTAL */}
-            <div className="flex justify-between pt-6 mt-6 text-2xl font-bold border-t border-white/10">
-              <span>Total</span>
-              <span className="text-cyan-400">₹{total}</span>
-            </div>
-
-            {/* TRUST BADGES */}
-            <div className="flex items-center gap-4 mt-6 text-sm text-gray-400">
-              <ShieldCheck size={18} className="text-green-400" />
-              Pay After Work System
-              <CreditCard size={18} className="ml-4 text-cyan-400" />
-              Manual Secure Payment
-            </div>
-
-            {/* INFO BOX */}
-            <div className="p-4 mt-6 text-sm text-gray-300 border rounded-xl border-white/10 bg-white/5">
-              💡 We complete your project first. After delivery we send UPI / QR for payment.
-            </div>
-
-            {/* BUTTONS */}
-            <div className="mt-6 space-y-3">
-
-              {/* PLACE ORDER */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={placeOrder}
-                disabled={loading || !user}
-                className="w-full py-4 text-lg font-semibold rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 disabled:opacity-50"
-              >
-                {loading ? "Placing Order..." : user ? "Place Order 🚀" : "Login to Place Order"}
-              </motion.button>
-
-              {!user && (
-                <p className="text-sm text-yellow-300">
-                  Please login to place an order and track it from your dashboard.
+            {cart.length === 0 ? (
+              <div className="space-y-6 text-center">
+                <p className="text-lg text-slate-300">
+                  Your cart is empty. Add services from the Services page and they will stay saved until removed.
                 </p>
-              )}
+                <Link href="/services" className="inline-block px-6 py-3 font-semibold rounded-full bg-cyan-500 text-white hover:bg-cyan-600">
+                  Browse Services
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4 max-h-[320px] overflow-y-auto pr-2">
+                  {cart.map((item, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col gap-3 p-4 border rounded-xl bg-white/5 border-white/10 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <p className="font-semibold truncate">
+                        {item.name || item.service}
+                      </p>
 
-              {/* WHATSAPP */}
-              <button
-                onClick={sendWhatsApp}
-                className="flex items-center justify-center w-full gap-2 py-3 font-semibold text-green-400 border border-green-400 rounded-xl hover:bg-green-400/10"
-              >
-                <MessageCircle size={18} />
-                Send Order on WhatsApp
-              </button>
+                      <p className="font-bold text-cyan-400">
+                        ₹{item.price || item.total}
+                      </p>
+                    </div>
+                  ))}
+                </div>
 
-            </div>
+                <div className="flex flex-col gap-4 mt-6 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="text-lg font-semibold text-slate-300">Total</span>
+                  <span className="text-3xl font-bold text-cyan-400">₹{total}</span>
+                </div>
 
-            {/* SUCCESS */}
-            {orderPlaced && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="p-4 mt-6 text-green-400 border border-green-400 rounded-xl bg-green-400/10"
-              >
-                ✅ Order Placed Successfully! We will contact you soon.
-              </motion.div>
+                <div className="mt-4 text-sm text-slate-300">
+                  Your cart remains saved in the browser until you delete items. Checkout does not clear the cart automatically.
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={placeOrder}
+                    disabled={loading || !user}
+                    className="w-full py-4 text-lg font-semibold rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 disabled:opacity-50"
+                  >
+                    {loading ? "Placing Order..." : user ? "Place Order 🚀" : "Login to Place Order"}
+                  </motion.button>
+
+                  {!user && (
+                    <p className="text-sm text-yellow-300">
+                      Please login to place an order and track it from your dashboard.
+                    </p>
+                  )}
+
+                  <button
+                    onClick={sendWhatsApp}
+                    className="flex items-center justify-center w-full gap-2 py-3 font-semibold text-green-400 border border-green-400 rounded-xl hover:bg-green-400/10"
+                  >
+                    <MessageCircle size={18} />
+                    Send Order on WhatsApp
+                  </button>
+
+                  <Link href="/cart" className="inline-flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-semibold text-center rounded-xl bg-slate-900/90 hover:bg-slate-800">
+                    Back to Cart
+                  </Link>
+
+                  <button
+                    onClick={clearCart}
+                    className="w-full py-3 text-sm font-semibold rounded-xl border border-red-500 text-red-300 hover:bg-red-500/10"
+                  >
+                    Clear Cart
+                  </button>
+                </div>
+
+                {orderPlaced && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="p-4 mt-6 text-green-400 border border-green-400 rounded-xl bg-green-400/10"
+                  >
+                    ✅ Order Placed Successfully! We will contact you soon.
+                  </motion.div>
+                )}
+              </>
             )}
-
           </motion.div>
-
         </div>
       </div>
 
-      <Footer />
     </div>
   );
 }

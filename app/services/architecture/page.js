@@ -9,8 +9,6 @@ import {
 } from "framer-motion";
 import { useEffect } from "react";
 import { Building2, Ruler, Home, Compass } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Link from "next/link";
 
 export default function ArchitecturePage() {
@@ -87,7 +85,6 @@ export default function ArchitecturePage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden text-white bg-[#0c0c0f]">
-      <Navbar />
 
       {/* 🔥 Mouse Glow */}
       <motion.div
@@ -217,7 +214,6 @@ export default function ArchitecturePage() {
         </section>
 
       </div>
-      <Footer />
     </div>
   );
 }

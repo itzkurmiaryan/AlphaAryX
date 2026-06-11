@@ -7,8 +7,6 @@ import {
   Briefcase, HeartPulse, Home, Truck, Banknote, Search
 } from "lucide-react";
 
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Link from "next/link";
 
 export default function CSCPage() {
@@ -86,7 +84,6 @@ export default function CSCPage() {
       onMouseMove={handleMouse}
       className="relative min-h-screen overflow-hidden text-white bg-[#05080f]"
     >
-      <Navbar />
 
       {/* 🔥 Mouse Glow */}
       <motion.div
@@ -237,7 +234,6 @@ export default function CSCPage() {
 
       </div>
 
-      <Footer />
     </div>
   );
 }

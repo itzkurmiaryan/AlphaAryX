@@ -1,8 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Link from "next/link";
 
 /* ================= DATA ================= */
@@ -129,7 +127,6 @@ export default function TechPage() {
         }}
       />
 
-      <Navbar />
 
       {/* GLOW */}
       <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-cyan-500/20 blur-[150px]" />
@@ -153,7 +150,7 @@ export default function TechPage() {
           <Link href="/services/tech/order">
             <motion.button whileHover={{ scale: 1.1 }}
               className="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600">
-              Start Building 🚀
+                  Place Order 🚀
             </motion.button>
           </Link>
         </div>
@@ -172,7 +169,7 @@ export default function TechPage() {
             </p>
 
             <p className="mt-2 text-xs text-gray-400">
-              Deploying scalable systems...
+                Placing orders for scalable systems...
             </p>
 
             <div className="mt-4 space-y-1 text-xs text-cyan-300">
@@ -254,7 +251,7 @@ export default function TechPage() {
 
                 <Link href="/services/tech/order">
                   <button className="w-full py-2 mt-4 rounded-lg bg-cyan-500">
-                    Deploy 🚀
+                      Place Order 🚀
                   </button>
                 </Link>
               </div>
@@ -333,12 +330,11 @@ export default function TechPage() {
         <Link href="/services/tech/order">
           <motion.button whileHover={{ scale: 1.1 }}
             className="px-10 py-3 mt-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600">
-            Start Development 🚀
+                    Place Order / Start Project 🚀
           </motion.button>
         </Link>
       </section>
 
-      <Footer />
     </div>
   );
 }

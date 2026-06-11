@@ -1,8 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Link from "next/link";
 
 const services = [
@@ -59,7 +57,6 @@ const plans = [
 export default function EducationPage() {
   return (
     <div className="overflow-hidden text-white bg-black">
-      <Navbar />
 
       {/* 🔥 BACKGROUND */}
       <div className="fixed top-0 left-0 w-[400px] h-[400px] bg-blue-500/20 blur-[120px] rounded-full"></div>
@@ -217,7 +214,6 @@ export default function EducationPage() {
         💬
       </a>
 
-      <Footer />
     </div>
   );
 }

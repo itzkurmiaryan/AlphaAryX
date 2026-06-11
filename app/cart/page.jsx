@@ -5,19 +5,16 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Trash2, ShoppingCart } from "lucide-react";
 
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 
 export default function CartPage() {
-  const { cart, removeFromCart } = useCart();
+  const { cart, removeFromCart, clearCart } = useCart();
   const router = useRouter();
 
-  const total = cart.reduce((a, b) => a + b.price, 0);
+  const total = cart.reduce((a, b) => a + (b.price || b.total || 0), 0);
 
   return (
     <div className="min-h-screen text-white bg-black">
 
-      <Navbar />
 
       {/* 🔥 Background Glow */}
       <div className="fixed top-20 left-20 w-[400px] h-[400px] bg-cyan-500/20 blur-[150px] rounded-full"></div>
@@ -58,10 +55,10 @@ export default function CartPage() {
                   whileHover={{ scale: 1.02 }}
                   className="p-6 border shadow-xl bg-white/5 border-white/10 rounded-3xl backdrop-blur-xl"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
-                    <div>
-                      <h2 className="text-xl font-semibold">
+                    <div className="min-w-0">
+                      <h2 className="text-xl font-semibold truncate">
                         {item.name || item.service}
                       </h2>
 
@@ -100,7 +97,7 @@ export default function CartPage() {
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
-              className="sticky p-6 border shadow-2xl h-fit top-20 bg-gradient-to-br from-white/5 to-white/10 border-white/10 rounded-3xl backdrop-blur-xl"
+              className="md:sticky p-6 border shadow-2xl h-fit top-20 bg-gradient-to-br from-white/5 to-white/10 border-white/10 rounded-3xl backdrop-blur-xl"
             >
 
               <h2 className="mb-4 text-2xl font-bold">
@@ -109,8 +106,8 @@ export default function CartPage() {
 
               <div className="space-y-2 text-sm text-gray-400">
                 {cart.map((item, i) => (
-                  <div key={i} className="flex justify-between">
-                    <span>{item.name || item.service}</span>
+                  <div key={i} className="flex justify-between gap-3">
+                    <span className="truncate">{item.name || item.service}</span>
                     <span>₹{item.price || item.total}</span>
                   </div>
                 ))}
@@ -123,12 +120,22 @@ export default function CartPage() {
                 <span className="text-cyan-400">₹{total}</span>
               </div>
 
-              {/* BUTTON */}
+              <p className="mt-4 text-sm text-slate-300">
+                Your cart stays saved until you remove items. Checkout does not clear the cart automatically.
+              </p>
+
               <button
                 onClick={() => router.push("/checkout")}
                 className="w-full py-3 mt-6 transition rounded-full shadow-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:scale-105"
               >
                 Proceed to Checkout 💳
+              </button>
+
+              <button
+                onClick={clearCart}
+                className="w-full py-3 mt-3 text-sm font-semibold rounded-full border border-red-500 text-red-300 hover:bg-red-500/10"
+              >
+                Clear Cart
               </button>
 
             </motion.div>
@@ -137,7 +144,6 @@ export default function CartPage() {
         )}
       </div>
 
-      <Footer />
     </div>
   );
 }

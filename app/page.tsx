@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import ServicesSection from "@/components/ServicesSection";
-import Footer from "@/components/Footer";
 import Testimonials from "@/components/Testimonials";
 
 export default function Home() {
@@ -36,7 +34,6 @@ export default function Home() {
       <div className="absolute bg-purple-300 rounded-full top-20 left-10 w-72 h-72 opacity-20 blur-3xl animate-pulse"></div>
       <div className="absolute bg-indigo-300 rounded-full bottom-10 right-10 w-72 h-72 opacity-20 blur-3xl animate-pulse"></div>
 
-      <Navbar />
       <Hero />
 
       {/* SCROLL TEXT */}
@@ -122,7 +119,6 @@ export default function Home() {
         </button>
       </section>
 
-      <Footer />
     </div>
   );
 }

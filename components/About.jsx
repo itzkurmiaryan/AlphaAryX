@@ -2,14 +2,10 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import Navbar from "./Navbar";
-import Footer from "./Footer";
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#070812] text-white relative overflow-hidden">
-
-      <Navbar />
 
       {/* 🌌 BACKGROUND */}
       <div className="absolute w-[500px] h-[500px] bg-purple-600/20 blur-[140px] top-[-120px] left-[-120px]" />
@@ -229,8 +225,6 @@ export default function AboutPage() {
         </section>
 
       </div>
-
-      <Footer />
     </div>
   );
 }
